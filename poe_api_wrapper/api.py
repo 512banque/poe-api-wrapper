@@ -273,49 +273,29 @@ class PoeApi:
         return self.bots
     
     def get_chat_history(self, bot: str=None, count: int=None, interval: int=50, cursor: str=None):
-
         chat_bots = {'data': {}, 'cursor': None}
         
         if count != None:
             interval = count
         
         if bot == None:
-            response_json = self.send_request('gql_POST', 'ChatHistoryListPaginationQuery', {'count': interval, 'cursor': cursor})
-            if response_json['data']['chats']['pageInfo']['hasNextPage']:
-                cursor = response_json['data']['chats']['pageInfo']['endCursor']
-                chat_bots['cursor'] = cursor  
-            else:
-                chat_bots['cursor'] = None
-            edges = response_json['data']['chats']['edges']
-            # print('-'*38+' \033[38;5;121mChat History\033[0m '+'-'*38)
-            # print('\033[38;5;121mChat ID\033[0m  |     \033[38;5;121mChat Code\033[0m       |           \033[38;5;121mBot Name\033[0m            |       \033[38;5;121mChat Title\033[0m')
-            # print('-' * 90)
-            for edge in edges:
-                chat = edge['node']
-                model = bot_map(chat["defaultBotObject"]["displayName"])
-                # print(f'{chat["chatId"]} | {chat["chatCode"]} | {model}' + (30-len(model))*' ' + f'| {chat["title"]}')
-                if model in chat_bots['data']:
-                    chat_bots['data'][model].append({"chatId": chat["chatId"],"chatCode": chat["chatCode"], "id": chat["id"], "title": chat["title"]})
+            while True:
+                response_json = self.send_request('gql_POST', 'ChatHistoryListPaginationQuery', {'count': interval, 'cursor': cursor})
+                edges = response_json['data']['chats']['edges']
+                for edge in edges:
+                    chat = edge['node']
+                    model = bot_map(chat["defaultBotObject"]["displayName"])
+                    if model in chat_bots['data']:
+                        chat_bots['data'][model].append({"chatId": chat["chatId"],"chatCode": chat["chatCode"], "id": chat["id"], "title": chat["title"]})
+                    else:
+                        chat_bots['data'][model] = [{"chatId": chat["chatId"], "chatCode": chat["chatCode"], "id": chat["id"], "title": chat["title"]}]
+                
+                if response_json['data']['chats']['pageInfo']['hasNextPage']:
+                    cursor = response_json['data']['chats']['pageInfo']['endCursor']
+                    chat_bots['cursor'] = cursor
                 else:
-                    chat_bots['data'][model] = [{"chatId": chat["chatId"], "chatCode": chat["chatCode"], "id": chat["id"], "title": chat["title"]}]
-            # Fetch more chats
-            if count == None:
-                while response_json['data']['chats']['pageInfo']['hasNextPage']:
-                    response_json = self.send_request('gql_POST', 'ChatHistoryListPaginationQuery', {'count': interval, 'cursor': cursor})
-                    edges = response_json['data']['chats']['edges']
-                    for edge in edges:
-                        chat = edge['node']
-                        model = bot_map(chat["defaultBotObject"]["displayName"])
-                        # print(f'{chat["chatId"]} | {chat["chatCode"]} | {model}' + (30-len(model))*' ' + f'| {chat["title"]}')
-                        if model in chat_bots['data']:
-                            chat_bots['data'][model].append({"chatId": chat["chatId"],"chatCode": chat["chatCode"], "id": chat["id"], "title": chat["title"]})
-                        else:
-                            chat_bots['data'][model] = [{"chatId": chat["chatId"], "chatCode": chat["chatCode"], "id": chat["id"], "title": chat["title"]}]    
-                    cursor = response_json['data']['chats']['pageInfo']['endCursor']  
-                    chat_bots['cursor'] = cursor      
-                if not response_json['data']['chats']['pageInfo']['hasNextPage']:
-                    chat_bots['cursor'] = None  
-                # print('-' * 90)  
+                    chat_bots['cursor'] = None
+                    break
         else:
             model = bot.lower().replace(' ', '')
             handle = model
@@ -323,46 +303,32 @@ class PoeApi:
                 if model == value:
                     handle = key
                     break
-            response_json = self.send_request('gql_POST', 'ChatHistoryFilteredListPaginationQuery', {'count': interval, 'handle': handle, 'cursor': cursor})
-            if response_json['data'] == None and response_json["errors"]:
-                raise ValueError(
-                    f"Bot {bot} not found. Make sure the bot exists before creating new chat."
-                )
-            if response_json['data']['filteredChats']['pageInfo']['hasNextPage']:
-                cursor = response_json['data']['filteredChats']['pageInfo']['endCursor']
-                chat_bots['cursor'] = cursor  
-            else:
-                chat_bots['cursor'] = None
-            edges = response_json['data']['filteredChats']['edges']
-            for edge in edges:
-                chat = edge['node']
-                try:
-                    if model in chat_bots['data']:
-                        chat_bots['data'][model].append({"chatId": chat["chatId"],"chatCode": chat["chatCode"], "id": chat["id"], "title": chat["title"]})
-                    else:
-                        chat_bots['data'][model] = [{"chatId": chat["chatId"], "chatCode": chat["chatCode"], "id": chat["id"], "title": chat["title"]}]
-                except Exception as e:
-                    logger.debug(str(e))
-                    pass 
-            # Fetch more chats
-            if count == None:
-                while response_json['data']['filteredChats']['pageInfo']['hasNextPage']:
-                    response_json = self.send_request('gql_POST', 'ChatHistoryFilteredListPaginationQuery', {'count': interval, 'handle': handle, 'cursor': cursor})
-                    edges = response_json['data']['filteredChats']['edges']
-                    for edge in edges:
-                        chat = edge['node']
-                        try:
-                            if model in chat_bots['data']:
-                                chat_bots['data'][model].append({"chatId": chat["chatId"],"chatCode": chat["chatCode"], "id": chat["id"], "title": chat["title"]})
-                            else:
-                                chat_bots['data'][model] = [{"chatId": chat["chatId"], "chatCode": chat["chatCode"], "id": chat["id"], "title": chat["title"]}]
-                        except Exception as e:
-                            logger.debug(str(e))
-                            pass      
-                    cursor = response_json['data']['filteredChats']['pageInfo']['endCursor']  
-                    chat_bots['cursor'] = cursor  
-                if not response_json['data']['filteredChats']['pageInfo']['hasNextPage']:
+            
+            while True:
+                response_json = self.send_request('gql_POST', 'ChatHistoryFilteredListPaginationQuery', {'count': interval, 'handle': handle, 'cursor': cursor})
+                if response_json['data'] == None and response_json["errors"]:
+                    raise ValueError(
+                        f"Bot {bot} not found. Make sure the bot exists before creating new chat."
+                    )
+                edges = response_json['data']['filteredChats']['edges']
+                for edge in edges:
+                    chat = edge['node']
+                    try:
+                        if model in chat_bots['data']:
+                            chat_bots['data'][model].append({"chatId": chat["chatId"],"chatCode": chat["chatCode"], "id": chat["id"], "title": chat["title"]})
+                        else:
+                            chat_bots['data'][model] = [{"chatId": chat["chatId"], "chatCode": chat["chatCode"], "id": chat["id"], "title": chat["title"]}]
+                    except Exception as e:
+                        logger.debug(str(e))
+                        pass 
+                
+                if response_json['data']['filteredChats']['pageInfo']['hasNextPage']:
+                    cursor = response_json['data']['filteredChats']['pageInfo']['endCursor']
+                    chat_bots['cursor'] = cursor
+                else:
                     chat_bots['cursor'] = None
+                    break
+            
         return chat_bots
     
     def get_threadData(self, bot: str="", chatCode: str=None, chatId: int=None):
