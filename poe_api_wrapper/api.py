@@ -286,9 +286,9 @@ class PoeApi:
                     chat = edge['node']
                     model = bot_map(chat["defaultBotObject"]["displayName"])
                     if model in chat_bots['data']:
-                        chat_bots['data'][model].append({"chatId": chat["chatId"],"chatCode": chat["chatCode"], "id": chat["id"], "title": chat["title"]})
+                        chat_bots['data'][model].append({"chatId": chat["chatId"],"chatCode": chat["chatCode"], "id": chat["id"], "title": chat["title"], "lastInteractionTime": chat["lastInteractionTime"]})
                     else:
-                        chat_bots['data'][model] = [{"chatId": chat["chatId"], "chatCode": chat["chatCode"], "id": chat["id"], "title": chat["title"]}]
+                        chat_bots['data'][model] = [{"chatId": chat["chatId"], "chatCode": chat["chatCode"], "id": chat["id"], "title": chat["title"], "lastInteractionTime": chat["lastInteractionTime"]}]
                 
                 if response_json['data']['chats']['pageInfo']['hasNextPage']:
                     cursor = response_json['data']['chats']['pageInfo']['endCursor']
