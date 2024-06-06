@@ -290,7 +290,7 @@ class PoeApi:
                     else:
                         chat_bots['data'][model] = [{"chatId": chat["chatId"], "chatCode": chat["chatCode"], "id": chat["id"], "title": chat["title"], "lastInteractionTime": chat["lastInteractionTime"]}]
                 
-                if response_json['data']['chats']['pageInfo']['hasNextPage']:
+                if response_json['data']['chats']['pageInfo']['hasNextPage'] and (count is None or len(edges) < count):
                     cursor = response_json['data']['chats']['pageInfo']['endCursor']
                     chat_bots['cursor'] = cursor
                 else:
@@ -322,7 +322,7 @@ class PoeApi:
                         logger.debug(str(e))
                         pass 
                 
-                if response_json['data']['filteredChats']['pageInfo']['hasNextPage']:
+                if response_json['data']['filteredChats']['pageInfo']['hasNextPage'] and (count is None or len(edges) < count):
                     cursor = response_json['data']['filteredChats']['pageInfo']['endCursor']
                     chat_bots['cursor'] = cursor
                 else:
